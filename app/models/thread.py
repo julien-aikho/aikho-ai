@@ -2,6 +2,7 @@
 
 from sqlmodel import SQLModel, Field
 from datetime import datetime
+from sqlalchemy import UniqueConstraint
 
 class Thread(SQLModel, table=True):
     """
@@ -9,11 +10,15 @@ class Thread(SQLModel, table=True):
     Each thread is uniquely identified by the combination of user_id and persona_id.
     """
     id: int = Field(default=None, primary_key=True)
-    user_id: str = Field(index=True)  # Indexed for faster user-based queries
-    persona_id: str = Field(index=True)  # Indexed for faster persona-based queries
+    user_id: str = Field(index=True)
+    persona_id: str = Field(index=True)
     name: str
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'persona_id', name='unique_user_persona'),
+    )
 
     class Config:
         json_schema_extra = {

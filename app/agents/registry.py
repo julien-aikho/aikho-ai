@@ -48,8 +48,19 @@ class AgentRegistry:
             for entry in config["agents"]:
                 try:
                     module_path, class_name = entry["package"].rsplit(".", 1)
+                    logfire.info(f"Loading module {module_path}")
                     module = importlib.import_module(module_path)
+                    logfire.info(f"Getting class {class_name} from module")
                     agent_class = getattr(module, class_name)
+                    logfire.info(f"Got agent_class: {agent_class} of type {type(agent_class)}")
+                    logfire.info(f"Module dict: {module.__dict__.keys()}")
+                    
+                    # Make sure we got a class and it's a ChatAgent
+                    if not isinstance(agent_class, type):
+                        raise TypeError(f"Expected a class, got {type(agent_class)}")
+                    if not issubclass(agent_class, ChatAgent):
+                        raise TypeError(f"Expected a ChatAgent subclass, got {agent_class}")
+                        
                     agent = agent_class()
                     cls.register(entry["id"], agent)
                 except Exception as e:

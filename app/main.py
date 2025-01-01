@@ -7,6 +7,10 @@ import uvicorn
 import logfire
 from pathlib import Path
 
+# Import models first so SQLModel knows what tables to create
+from app.models.thread import Thread
+from app.models.message import Message, MessagePart
+
 from app.routers import chat
 from app.db.core import create_db_and_tables
 from app.agents.registry import AgentRegistry
