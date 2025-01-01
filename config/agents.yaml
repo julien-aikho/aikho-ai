@@ -1,0 +1,5 @@
+agents:
+  - id: basic
+    package: impl.basic.agent.BasicAgent 
+  - id: basic2
+    package: impl.basic.agent.BasicAgent 

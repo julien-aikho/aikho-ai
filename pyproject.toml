@@ -1,0 +1,17 @@
+[project]
+name = "aikho-ai"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi[standard]>=0.115.6",
+    "pydantic>=2.10.4",
+    "pydantic-ai>=0.0.16",
+    "sqlmodel>=0.0.22",
+    "uvicorn>=0.34.0",
+    "pydantic-settings>=2.1.0",
+    "psycopg2-binary>=2.9.9",
+    "httpx>=0.27.0",
+    "logfire>=2.11.1",
+]

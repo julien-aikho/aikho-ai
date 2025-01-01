@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aikho Chat</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-xl font-bold text-indigo-600">Aikho Chat</h1>
+                <div id="header-info" class="hidden">
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm text-gray-600">👤 <span id="header-user"></span></span>
+                        <span class="text-sm text-gray-600">🤖 <span id="header-agent"></span></span>
+                        <button onclick="resetChat()" 
+                                class="text-sm bg-gray-100 hover:bg-gray-200 text-gray-600 px-3 py-1 rounded-md transition-colors">
+                            Change Setup
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Setup Form -->
+        <div id="setup" class="max-w-md mx-auto">
+            <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">Chat Setup</h2>
+                <div class="space-y-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">User ID</label>
+                        <input type="text" id="user-id" placeholder="default" 
+                               class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Select Agent</label>
+                        <select id="agent-id" 
+                                class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors">
+                            <option value="basic">Loading agents...</option>
+                        </select>
+                    </div>
+                    <button onclick="startChat()" 
+                            class="w-full bg-indigo-600 text-white rounded-md px-4 py-3 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors">
+                        Start Chat
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Interface -->
+        <div id="chat" class="max-w-4xl mx-auto hidden">
+            <div id="messages" class="bg-white rounded-lg shadow-lg mb-4 p-6 h-[600px] overflow-y-auto space-y-4">
+                <!-- Messages will be inserted here -->
+            </div>
+            <div class="flex space-x-4">
+                <input type="text" id="message-input" placeholder="Type a message..." 
+                       class="flex-1 rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 transition-colors"
+                       onkeypress="if(event.key === 'Enter') sendMessage()">
+                <button onclick="sendMessage()" 
+                        class="bg-indigo-600 text-white rounded-md px-6 py-2 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors">
+                    Send
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let config = {
+            userId: 'default',
+            agentId: 'basic'
+        };
+
+        // Fetch available agents on load
+        fetch('/chat/agents')
+            .then(response => response.json())
+            .then(agents => {
+                const select = document.getElementById('agent-id');
+                select.innerHTML = agents.map(a => 
+                    `<option value="${a.id}">${a.name}</option>`
+                ).join('');
+            })
+            .catch(error => console.error('Error fetching agents:', error));
+
+        function startChat() {
+            // Get values from form
+            config.userId = document.getElementById('user-id').value || 'default';
+            config.agentId = document.getElementById('agent-id').value;
+
+            // Update header
+            document.getElementById('header-user').textContent = config.userId;
+            document.getElementById('header-agent').textContent = config.agentId;
+            document.getElementById('header-info').classList.remove('hidden');
+
+            // Hide setup, show chat
+            document.getElementById('setup').classList.add('hidden');
+            document.getElementById('chat').classList.remove('hidden');
+
+            // Add welcome message
+            addMessage({
+                type: 'system',
+                content: `Welcome! Chatting as ${config.userId} with ${config.agentId}`
+            });
+            
+            // Focus input
+            document.getElementById('message-input').focus();
+        }
+
+        function resetChat() {
+            // Hide chat, show setup
+            document.getElementById('chat').classList.add('hidden');
+            document.getElementById('setup').classList.remove('hidden');
+            document.getElementById('header-info').classList.add('hidden');
+            
+            // Clear messages
+            document.getElementById('messages').innerHTML = '';
+            
+            // Reset input
+            document.getElementById('message-input').value = '';
+            
+            // Focus user id input
+            document.getElementById('user-id').focus();
+        }
+
+        function addMessage({ type, content, error = null }) {
+            const messages = document.getElementById('messages');
+            const div = document.createElement('div');
+            const timestamp = new Date().toLocaleTimeString();
+            
+            switch(type) {
+                case 'user':
+                    div.className = 'flex justify-end space-x-2';
+                    div.innerHTML = `
+                        <div class="flex flex-col items-end space-y-1">
+                            <div class="bg-indigo-100 rounded-2xl px-4 py-2 max-w-[80%] shadow-sm">
+                                <p class="text-sm text-indigo-800">${content}</p>
+                            </div>
+                            <span class="text-xs text-gray-400">${timestamp}</span>
+                        </div>
+                    `;
+                    break;
+                case 'assistant':
+                    div.className = 'flex justify-start space-x-2';
+                    div.innerHTML = `
+                        <div class="flex flex-col items-start space-y-1">
+                            <div class="bg-white border border-gray-200 rounded-2xl px-4 py-2 max-w-[80%] shadow-sm">
+                                <p class="text-sm text-gray-800">${content}</p>
+                                ${error ? `<p class="text-sm text-red-500 mt-1">${error}</p>` : ''}
+                            </div>
+                            <span class="text-xs text-gray-400">${timestamp}</span>
+                        </div>
+                    `;
+                    break;
+                case 'system':
+                    div.className = 'flex justify-center';
+                    div.innerHTML = `
+                        <div class="bg-gray-50 rounded-full px-4 py-1 shadow-sm">
+                            <p class="text-xs text-gray-500">${content}</p>
+                        </div>
+                    `;
+                    break;
+            }
+            
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('message-input');
+            const content = input.value.trim();
+            
+            if (!content) return;
+            
+            // Clear input
+            input.value = '';
+            
+            // Add user message
+            addMessage({
+                type: 'user',
+                content: content
+            });
+            
+            try {
+                // Send to server
+                const response = await fetch('/chat/message', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        content: content,
+                        agent_id: config.agentId,
+                        user_id: config.userId
+                    }),
+                });
+                
+                const data = await response.json();
+                
+                // Add assistant response
+                addMessage({
+                    type: 'assistant',
+                    content: data.response.content,
+                    error: data.response.error
+                });
+            } catch (error) {
+                addMessage({
+                    type: 'system',
+                    content: `Error: ${error.message}`
+                });
+            }
+        }
+    </script>
+</body>
+</html> 
